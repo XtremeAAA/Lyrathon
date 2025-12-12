@@ -1,0 +1,134 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Smart Job Matching Platform</title>
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <!-- Header -->
+    <header class="header">
+        <div class="container">
+            <h1 class="header-title">Smart Job Matching Platform</h1>
+            <p class="header-subtitle">Intelligent matching based on actual capabilities</p>
+        </div>
+    </header>
+
+    <!-- Tab Navigation -->
+    <nav class="tab-nav">
+        <div class="container">
+            <button id="companyTab" class="tab-button active" onclick="switchTab('company')">
+                <span class="icon">💼</span>
+                Company Portal
+            </button>
+            <button id="candidateTab" class="tab-button" onclick="switchTab('candidate')">
+                <span class="icon">👤</span>
+                Candidate Portal
+            </button>
+        </div>
+    </nav>
+
+    <main class="container main-content">
+        <!-- Company Portal -->
+        <div id="companyPortal" class="portal active">
+            <div class="grid">
+                <!-- Job Posting Form -->
+                <div class="card">
+                    <h2 class="card-title">Post a Job</h2>
+                    
+                    <form id="jobForm" class="form">
+                        <div class="form-group">
+                            <label for="jobTitle">Job Title</label>
+                            <input type="text" id="jobTitle" class="form-input" placeholder="e.g., Senior Software Engineer" required>
+                        </div>
+
+                        <div class="form-group">
+                            <label for="companyName">Company Name</label>
+                            <input type="text" id="companyName" class="form-input" placeholder="Your company name" required>
+                        </div>
+
+                        <div class="form-group">
+                            <label for="jobDescription">Job Description</label>
+                            <textarea id="jobDescription" class="form-textarea" rows="3" placeholder="Describe the role..."></textarea>
+                        </div>
+
+                        <div class="form-group">
+                            <label for="requirement">Requirements / Skills</label>
+                            <div class="input-group">
+                                <input type="text" id="requirement" class="form-input" placeholder="e.g., React, Python, 5 years experience">
+                                <button type="button" class="btn-add" onclick="addRequirement()">+</button>
+                            </div>
+                            <div id="requirementsList" class="tags-container"></div>
+                        </div>
+
+                        <div class="form-group">
+                            <label for="minimumMatch">Minimum Match Percentage: <span id="matchValue">50</span>%</label>
+                            <input type="range" id="minimumMatch" class="slider" min="0" max="100" step="10" value="50" oninput="updateMatchValue(this.value)">
+                            <p class="help-text">Only candidates matching <span id="matchValueText">50</span>% or more of requirements will see this job</p>
+                        </div>
+
+                        <button type="submit" class="btn-primary">Post Job</button>
+                    </form>
+                </div>
+
+                <!-- Posted Jobs -->
+                <div class="card">
+                    <h2 class="card-title">Your Job Postings</h2>
+                    <div id="jobsList" class="list-container">
+                        <p class="empty-state">No jobs posted yet</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Candidate Portal -->
+        <div id="candidatePortal" class="portal">
+            <div class="grid">
+                <!-- Candidate Profile Form -->
+                <div class="card">
+                    <h2 class="card-title">Create Your Profile</h2>
+                    
+                    <form id="candidateForm" class="form">
+                        <div class="form-group">
+                            <label for="candidateName">Full Name</label>
+                            <input type="text" id="candidateName" class="form-input" placeholder="Your name" required>
+                        </div>
+
+                        <div class="form-group">
+                            <label for="candidateEmail">Email</label>
+                            <input type="email" id="candidateEmail" class="form-input" placeholder="your.email@example.com" required>
+                        </div>
+
+                        <div class="form-group">
+                            <label for="candidateExperience">Experience Summary</label>
+                            <textarea id="candidateExperience" class="form-textarea" rows="3" placeholder="Brief summary of your experience..."></textarea>
+                        </div>
+
+                        <div class="form-group">
+                            <label for="skill">Your Skills</label>
+                            <div class="input-group">
+                                <input type="text" id="skill" class="form-input" placeholder="e.g., JavaScript, Project Management">
+                                <button type="button" class="btn-add" onclick="addSkill()">+</button>
+                            </div>
+                            <div id="skillsList" class="tags-container"></div>
+                        </div>
+
+                        <button type="submit" class="btn-primary">Create Profile</button>
+                    </form>
+                </div>
+
+                <!-- Available Jobs -->
+                <div class="card">
+                    <h2 class="card-title">Jobs Matched to You</h2>
+                    <div id="matchedJobsList" class="list-container">
+                        <p class="empty-state">Create your profile to see matched jobs</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <script src="script.js"></script>
+</body>
+</html>
