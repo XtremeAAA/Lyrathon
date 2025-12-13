@@ -1,9 +1,13 @@
 // Data storage
 let jobs = [];
+let candidates = []; // store all candidate profiles for company view
 let currentCandidate = null;
 let currentRequiredSkills = [];
 let currentRecommendedSkills = [];
 let currentSkills = [];
+let editingJobId = null;
+let isEditingProfile = false;
+let editingCandidateId = null;
 
 // Tab switching
 function switchTab(tab) {
@@ -29,6 +33,12 @@ function switchTab(tab) {
 function updateMatchValue(value) {
     document.getElementById('matchValue').textContent = value;
     document.getElementById('matchValueText').textContent = value;
+    // update slider background to show filled portion in blue
+    const slider = document.getElementById('minimumMatch');
+    if (slider) {
+        const pct = Number(value);
+        slider.style.background = `linear-gradient(90deg, #4f46e5 ${pct}%, #e5e7eb ${pct}%)`;
+    }
 }
 
 // Add requirement
@@ -165,12 +175,21 @@ function meetsRequiredSkills(requiredSkills, candidateSkills) {
 }
 
 // Check if candidate qualifies for a job
-function isQualified(job, candidateSkills) {
+// Accepts a job and a candidate object { skills: [...], years: number }
+function isQualified(job, candidate) {
+    const candidateSkills = (candidate && candidate.skills) ? candidate.skills : [];
+    const candidateYears = (candidate && typeof candidate.years === 'number') ? candidate.years : 0;
+
+    // Must meet minimum years requirement
+    if (typeof job.minYears === 'number' && !isNaN(job.minYears)) {
+        if (candidateYears < job.minYears) return false;
+    }
+
     // Must have ALL required skills
     if (!meetsRequiredSkills(job.requiredSkills, candidateSkills)) {
         return false;
     }
-    
+
     // Must meet minimum percentage of recommended skills
     const recommendedMatch = calculateRecommendedMatch(job.recommendedSkills, candidateSkills);
     return recommendedMatch >= job.minimumMatch;
@@ -178,15 +197,18 @@ function isQualified(job, candidateSkills) {
 
 // Get qualified candidates count for a job
 function getQualifiedCandidatesCount(job) {
-    if (!currentCandidate) return 0;
-    return isQualified(job, currentCandidate.skills) ? 1 : 0;
+    // count all candidates that qualify for this job
+    return candidates.filter(c => isQualified(job, c)).length;
+}
+
+function getQualifiedCandidates(job) {
+    return candidates.filter(c => isQualified(job, c));
 }
 
 // Get visible jobs for current candidate
 function getVisibleJobs() {
     if (!currentCandidate) return [];
-    
-    return jobs.filter(job => isQualified(job, currentCandidate.skills));
+    return jobs.filter(job => isQualified(job, currentCandidate));
 }
 
 // Post job
@@ -197,6 +219,8 @@ function postJob(e) {
     const company = document.getElementById('companyName').value.trim();
     const description = document.getElementById('jobDescription').value.trim();
     const minimumMatch = parseInt(document.getElementById('minimumMatch').value);
+    const minYearsInput = document.getElementById('jobMinYears');
+    const minYears = minYearsInput ? parseInt(minYearsInput.value, 10) : NaN;
 
     if (!title || !company) {
         alert('Please fill in job title and company name');
@@ -208,17 +232,38 @@ function postJob(e) {
         return;
     }
 
-    const job = {
-        id: Date.now(),
-        title,
-        company,
-        description,
-        requiredSkills: [...currentRequiredSkills],
-        recommendedSkills: [...currentRecommendedSkills],
-        minimumMatch
-    };
+    // Validate minimum years is provided and non-negative
+    if (isNaN(minYears) || minYears < 0) {
+        alert('Please enter a valid minimum years of experience (0 or more)');
+        return;
+    }
 
-    jobs.push(job);
+    if (editingJobId) {
+        // update existing job
+        const jobIndex = jobs.findIndex(j => j.id === editingJobId);
+        if (jobIndex !== -1) {
+            jobs[jobIndex].title = title;
+            jobs[jobIndex].company = company;
+            jobs[jobIndex].description = description;
+            jobs[jobIndex].requiredSkills = [...currentRequiredSkills];
+            jobs[jobIndex].recommendedSkills = [...currentRecommendedSkills];
+            jobs[jobIndex].minimumMatch = minimumMatch;
+            jobs[jobIndex].minYears = minYears;
+        }
+    } else {
+        const job = {
+            id: Date.now(),
+            title,
+            company,
+            description,
+            requiredSkills: [...currentRequiredSkills],
+            recommendedSkills: [...currentRecommendedSkills],
+            minimumMatch,
+            minYears: minYears
+        };
+
+        jobs.push(job);
+    }
 
     // Reset form
     document.getElementById('jobForm').reset();
@@ -227,6 +272,12 @@ function postJob(e) {
     renderRequirements();
     document.getElementById('minimumMatch').value = 50;
     updateMatchValue(50);
+
+    // close modal if open
+    closeJobModal();
+
+    // clear editing state
+    editingJobId = null;
 
     // Update displays
     renderJobs();
@@ -250,6 +301,7 @@ function renderJobs() {
 
     jobs.forEach(job => {
         const qualifiedCount = getQualifiedCandidatesCount(job);
+        const qualifiedApplicants = getQualifiedCandidates(job);
 
         const jobDiv = document.createElement('div');
         jobDiv.className = 'job-item';
@@ -280,13 +332,24 @@ function renderJobs() {
 
         jobDiv.innerHTML = `
             <h3 class="job-title">${job.title}</h3>
-            <p class="job-company">${job.company}</p>
+            <button class="job-edit-btn" onclick="openJobModalForEdit(${job.id})">Edit</button>
+                <p class="job-company">${job.company}</p>
+                <p class="job-experience">${job.minYears ? 'Min ' + job.minYears + ' yrs' : 'Experience: Any'}</p>
             <p class="job-description">${job.description}</p>
             ${requiredHTML}
             ${recommendedHTML}
             <div class="job-footer">
                 <p class="qualified-count">${qualifiedCount} qualified candidate(s) can see this job</p>
                 <p class="minimum-match">Candidates must have ALL required skills + ${job.minimumMatch}% of recommended skills</p>
+            </div>
+            <div class="applicants-list">
+                <p class="job-requirements-label">Qualified Applicants:</p>
+                ${qualifiedApplicants.length === 0 ? '<p class="no-matches">No qualified applicants yet</p>' : qualifiedApplicants.map(app => `
+                    <div class="applicant-item">
+                        <p style="font-weight:700; margin-bottom:0.25rem;">${app.name}</p>
+                        <p style="font-size:0.875rem; color:#6b7280; margin:0;">${app.email} • ${app.experience || ''}</p>
+                    </div>
+                `).join('')}
             </div>
         `;
         container.appendChild(jobDiv);
@@ -306,13 +369,28 @@ function submitProfile(e) {
         return;
     }
 
-    currentCandidate = {
-        id: Date.now(),
+    const years = document.getElementById('candidateYears') ? parseInt(document.getElementById('candidateYears').value || 0) : 0;
+
+    const newProfile = {
+        id: isEditingProfile ? editingCandidateId : Date.now(),
         name,
         email,
         experience,
+        years,
         skills: [...currentSkills]
     };
+
+    if (isEditingProfile) {
+        // update existing candidate in candidates array
+        const idx = candidates.findIndex(c => c.id === editingCandidateId);
+        if (idx !== -1) candidates[idx] = newProfile;
+        currentCandidate = newProfile;
+        isEditingProfile = false;
+        editingCandidateId = null;
+    } else {
+        currentCandidate = newProfile;
+        candidates.push(newProfile);
+    }
 
     // Hide profile creation, show jobs display
     document.getElementById('profileCreationSection').style.display = 'none';
@@ -320,7 +398,7 @@ function submitProfile(e) {
 
     // Display profile info
     document.getElementById('profileNameDisplay').textContent = currentCandidate.name;
-    document.getElementById('profileEmailDisplay').textContent = currentCandidate.email;
+    document.getElementById('profileEmailDisplay').textContent = currentCandidate.email + (currentCandidate.years ? (' • ' + currentCandidate.years + ' yrs') : '');
     
     const skillsDisplay = document.getElementById('profileSkillsDisplay');
     skillsDisplay.innerHTML = '';
@@ -333,9 +411,9 @@ function submitProfile(e) {
 
     // Update displays
     renderMatchedJobs();
-    renderJobs(); // Update job list to show qualified count
+    renderJobs(); // Update job list to show qualified count and applicants
 
-    alert('Profile created successfully!');
+    alert('Profile saved successfully!');
 }
 
 // Edit profile
@@ -344,12 +422,52 @@ function editProfile() {
     document.getElementById('profileCreationSection').style.display = 'block';
     document.getElementById('jobsDisplaySection').style.display = 'none';
 
-    // Pre-fill form with current data
+    // Pre-fill form with current data for editing
     document.getElementById('candidateName').value = currentCandidate.name;
     document.getElementById('candidateEmail').value = currentCandidate.email;
     document.getElementById('candidateExperience').value = currentCandidate.experience;
+    document.getElementById('candidateYears').value = currentCandidate.years || '';
     currentSkills = [...currentCandidate.skills];
     renderSkills();
+    isEditingProfile = true;
+    editingCandidateId = currentCandidate.id;
+}
+
+// Modal controls for job creation/editing
+function openJobModal() {
+    editingJobId = null;
+    document.getElementById('modalTitle').textContent = 'Create Job';
+    document.getElementById('jobForm').reset();
+    currentRequiredSkills = [];
+    currentRecommendedSkills = [];
+    renderRequirements();
+    document.getElementById('jobModalOverlay').classList.add('active');
+    document.getElementById('jobModalOverlay').setAttribute('aria-hidden', 'false');
+}
+
+function closeJobModal() {
+    document.getElementById('jobModalOverlay').classList.remove('active');
+    document.getElementById('jobModalOverlay').setAttribute('aria-hidden', 'true');
+}
+
+function openJobModalForEdit(jobId) {
+    const job = jobs.find(j => j.id === jobId);
+    if (!job) return;
+    editingJobId = jobId;
+    document.getElementById('modalTitle').textContent = 'Edit Job';
+    document.getElementById('jobTitle').value = job.title;
+    document.getElementById('companyName').value = job.company;
+    document.getElementById('jobDescription').value = job.description;
+    document.getElementById('minimumMatch').value = job.minimumMatch || 50;
+    document.getElementById('jobMinYears').value = job.minYears || '';
+    updateMatchValue(document.getElementById('minimumMatch').value);
+
+    currentRequiredSkills = [...(job.requiredSkills || [])];
+    currentRecommendedSkills = [...(job.recommendedSkills || [])];
+    renderRequirements();
+
+    document.getElementById('jobModalOverlay').classList.add('active');
+    document.getElementById('jobModalOverlay').setAttribute('aria-hidden', 'false');
 }
 
 // Render matched jobs for current candidate
@@ -439,3 +557,6 @@ document.getElementById('skill').addEventListener('keypress', function(e) {
 // Initialize
 renderRequirements();
 renderSkills();
+// initialize slider fill
+const mm = document.getElementById('minimumMatch');
+if (mm) updateMatchValue(mm.value);

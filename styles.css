@@ -147,6 +147,15 @@ body {
     transition: all 0.2s;
 }
 
+.form-select {
+    width: auto;
+    padding: 0.625rem 0.75rem;
+    border: 1px solid #d1d5db;
+    border-radius: 0.5rem;
+    font-size: 1rem;
+    background: white;
+}
+
 .form-input:focus,
 .form-textarea:focus {
     outline: none;
@@ -198,6 +207,107 @@ body {
     background: #4338ca;
 }
 
+.btn-secondary {
+    padding: 0.5rem 1rem;
+    background: transparent;
+    color: #4f46e5;
+    border: 1px solid #e6e6fa;
+    border-radius: 0.5rem;
+    font-size: 0.95rem;
+    font-weight: 600;
+    cursor: pointer;
+}
+
+.btn-secondary:hover {
+    background: #f3f4ff;
+}
+
+/* Floating action button */
+.fab {
+    position: fixed;
+    right: 2rem;
+    bottom: 2rem;
+    width: 56px;
+    height: 56px;
+    border-radius: 50%;
+    background: #4f46e5;
+    color: white;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.5rem;
+    box-shadow: 0 6px 18px rgba(79,70,229,0.25);
+    border: none;
+    cursor: pointer;
+}
+
+.fab:hover { background: #4338ca; }
+
+/* Modal */
+.modal-overlay {
+    position: fixed;
+    inset: 0;
+    background: rgba(15, 23, 42, 0.5);
+    display: none;
+    align-items: center;
+    justify-content: center;
+    z-index: 60;
+}
+
+.modal-overlay.active { display: flex; }
+
+.modal {
+    background: white;
+    width: 90%;
+    max-width: 720px;
+    border-radius: 0.75rem;
+    padding: 1.25rem;
+    box-shadow: 0 10px 30px rgba(2,6,23,0.2);
+}
+
+.modal-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 0.75rem;
+}
+
+.modal-close {
+    background: transparent;
+    border: none;
+    font-size: 1.25rem;
+    cursor: pointer;
+}
+
+.job-edit-btn {
+    position: absolute;
+    top: 0.75rem;
+    right: 0.75rem;
+    background: transparent;
+    border: none;
+    color: #4f46e5;
+    font-weight: 700;
+    cursor: pointer;
+}
+
+.job-item { position: relative; }
+
+/* center cards to match candidate profile width */
+.centered-card {
+    max-width: 880px; /* increase width to match profile/create card sizing */
+    width: 100%;
+    margin-left: auto;
+    margin-right: auto;
+}
+
+/* centered single-column container for matching profile width */
+.centered-column {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 2rem;
+}
+
 /* Tags */
 .tags-container {
     display: flex;
@@ -221,6 +331,18 @@ body {
 .tag-skill {
     background: #d1fae5;
     color: #065f46;
+}
+
+.tag-required {
+    background: #fee2e2;
+    color: #991b1b;
+    border: 1px solid #fecaca;
+}
+
+.tag-recommended {
+    background: #ecfdf5;
+    color: #065f46;
+    border: 1px solid #bbf7d0;
 }
 
 .tag-remove {

@@ -32,11 +32,27 @@
     <main class="container main-content">
         <!-- Company Portal -->
         <div id="companyPortal" class="portal active">
-            <div class="grid">
-                <!-- Job Posting Form -->
-                <div class="card">
-                    <h2 class="card-title">Post a Job</h2>
-                    
+            <div class="centered-column">
+                <!-- Posted Jobs (full width) -->
+                <div class="card centered-card">
+                    <h2 class="card-title">Your Job Postings</h2>
+                    <div id="jobsList" class="list-container">
+                        <p class="empty-state">No jobs posted yet</p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Floating Add Job Button -->
+            <button id="openJobModal" class="fab" onclick="openJobModal()">+</button>
+
+            <!-- Job Modal -->
+            <div id="jobModalOverlay" class="modal-overlay" aria-hidden="true">
+                <div class="modal" role="dialog" aria-modal="true">
+                    <div class="modal-header">
+                        <h3 id="modalTitle">Create Job</h3>
+                        <button class="modal-close" onclick="closeJobModal()">✕</button>
+                    </div>
+
                     <form id="jobForm" class="form">
                         <div class="form-group">
                             <label for="jobTitle">Job Title</label>
@@ -46,6 +62,13 @@
                         <div class="form-group">
                             <label for="companyName">Company Name</label>
                             <input type="text" id="companyName" class="form-input" placeholder="Your company name" required>
+                        </div>
+
+                        <!-- Experience level removed: using minimum years only -->
+
+                        <div class="form-group">
+                            <label for="jobMinYears">Minimum Years Experience</label>
+                            <input type="number" id="jobMinYears" class="form-input" min="0" placeholder="e.g., 2" required>
                         </div>
 
                         <div class="form-group">
@@ -81,16 +104,11 @@
                             <p class="help-text">Candidates must have ALL required skills and at least <span id="matchValueText">50</span>% of recommended skills</p>
                         </div>
 
-                        <button type="submit" class="btn-primary">Post Job</button>
+                        <div style="display:flex; gap:0.5rem;">
+                            <button type="submit" class="btn-primary">Save Job</button>
+                            <button type="button" class="btn-secondary" onclick="closeJobModal()">Cancel</button>
+                        </div>
                     </form>
-                </div>
-
-                <!-- Posted Jobs -->
-                <div class="card">
-                    <h2 class="card-title">Your Job Postings</h2>
-                    <div id="jobsList" class="list-container">
-                        <p class="empty-state">No jobs posted yet</p>
-                    </div>
                 </div>
             </div>
         </div>
@@ -99,7 +117,7 @@
         <div id="candidatePortal" class="portal">
             <!-- Profile Creation Form -->
             <div id="profileCreationSection" class="single-column">
-                <div class="card">
+                <div class="card centered-card">
                     <h2 class="card-title">Create Your Profile</h2>
                     <p class="card-subtitle">Create your profile to see matched jobs</p>
                     
@@ -117,6 +135,11 @@
                         <div class="form-group">
                             <label for="candidateExperience">Experience Summary</label>
                             <textarea id="candidateExperience" class="form-textarea" rows="3" placeholder="Brief summary of your experience..."></textarea>
+                        </div>
+
+                        <div class="form-group">
+                            <label for="candidateYears">Years of Experience</label>
+                            <input type="number" id="candidateYears" class="form-input" min="0" placeholder="e.g., 3">
                         </div>
 
                         <div class="form-group">
