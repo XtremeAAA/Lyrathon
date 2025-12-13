@@ -338,6 +338,22 @@ body {
     font-size: 0.75rem;
 }
 
+.requirement-required {
+    background: #fee2e2;
+    color: #991b1b;
+    border: 1px solid #fecaca;
+}
+
+.requirement-recommended {
+    background: #ecfdf5;
+    color: #065f46;
+    border: 1px solid #bbf7d0;
+}
+
+.requirement-type {
+    max-width: 11rem;
+}
+
 .job-footer {
     margin-top: 0.75rem;
     padding-top: 0.75rem;

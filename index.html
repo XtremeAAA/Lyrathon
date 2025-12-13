@@ -57,6 +57,10 @@
                             <label for="requirement">Requirements / Skills</label>
                             <div class="input-group">
                                 <input type="text" id="requirement" class="form-input" placeholder="e.g., React, Python, 5 years experience">
+                                <select id="requirementType" class="form-input requirement-type">
+                                    <option value="required">Required</option>
+                                    <option value="recommended" selected>Recommended</option>
+                                </select>
                                 <button type="button" class="btn-add" onclick="addRequirement()">+</button>
                             </div>
                             <div id="requirementsList" class="tags-container"></div>
