@@ -1,0 +1,35 @@
+/* Simple styles for GitHub heatmap demo */
+:root{
+  --bg: #f6f8fa;
+  --card: #ffffff;
+  --muted: #6b7280;
+  --accent: #0366d6;
+}
+*{box-sizing:border-box}
+body{font-family:Inter,system-ui,Segoe UI,Roboto,Helvetica,Arial,sans-serif;background:var(--bg);margin:0;color:#111}
+.container{max-width:980px;margin:32px auto;padding:0 16px}
+h1{color:var(--accent);margin-bottom:8px}
+.note{font-size:0.9rem;color:var(--muted)}
+.search{margin-bottom:18px}
+.input-row{display:flex;gap:8px;align-items:center}
+#username{flex:1;padding:8px 10px;border-radius:6px;border:1px solid #d1d5db;font-size:1rem}
+button{background:var(--accent);color:white;border:none;padding:8px 12px;border-radius:6px;cursor:pointer}
+button:disabled{opacity:0.6;cursor:default}
+.muted{color:var(--muted)}
+.small{font-size:0.85rem}
+.grid{display:grid;grid-template-columns:1fr 460px;gap:16px}
+.card{background:var(--card);border-radius:10px;padding:14px;box-shadow:0 6px 18px rgba(2,6,23,0.06)}
+.repos #reposList{display:flex;flex-direction:column;gap:10px}
+.repo{border:1px solid #eef2ff;padding:10px;border-radius:8px}
+.repo h4{margin:0 0 6px 0}
+.repo p{margin:0;color:var(--muted)}
+.repo .meta{margin-top:8px;font-size:0.9rem;color:var(--muted);display:flex;gap:12px}
+.profile-header{display:flex;align-items:center;gap:12px}
+.profile-header img{width:56px;height:56px;border-radius:8px}
+.heatmap svg{max-width:100%}
+.legend{display:flex;align-items:center;gap:8px;margin-top:8px}
+.legend .box{width:18px;height:18px;border-radius:2px}
+.error{background:#fee2e2;color:#7f1d1d;padding:12px;border-radius:8px;margin-top:16px}
+.footer{margin-top:18px;color:var(--muted);font-size:0.9rem}
+@media (max-width:920px){.grid{grid-template-columns:1fr}
+.heatmap{order:2}}
