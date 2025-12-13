@@ -1,0 +1,44 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Software Engineer Resume Scorer</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <h1>Software Engineer Resume Scorer</h1>
+
+  <form id="resume-form">
+    <input type="file" name="resume" id="resume" accept=".pdf,.docx" required>
+    <button type="submit">Upload & Score</button>
+  </form>
+
+  <div id="result"></div>
+
+  <script>
+    const form = document.getElementById('resume-form');
+    const resultDiv = document.getElementById('result');
+
+    form.addEventListener('submit', async (e) => {
+      e.preventDefault();
+
+      const fileInput = document.getElementById('resume');
+      const file = fileInput.files[0];
+
+      const formData = new FormData();
+      formData.append('resume', file);
+
+      const response = await fetch('/upload', {
+        method: 'POST',
+        body: formData
+      });
+
+      const result = await response.json();
+
+      resultDiv.innerHTML = `
+        <h2>Resume Score: ${result.score}%</h2>
+        <pre>${JSON.stringify(result.parsed, null, 2)}</pre>
+      `;
+    });
+  </script>
+</body>
+</html>

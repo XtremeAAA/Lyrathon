@@ -416,3 +416,5 @@ FodyWeavers.xsd
 *.msix
 *.msm
 *.msp
+resume-scorer/public/.envAFFINDA_API_KEY=aff_82082c680909ec3e0aa6e1ee9a5c6ba0a981c300
+AFFINDA_REGION=api.affinda.com
