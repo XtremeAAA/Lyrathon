@@ -153,6 +153,17 @@ function hasSkill(candidateSkills, requirement) {
     });
 }
 
+// Format timestamp into readable local date/time
+function formatDateTime(ts) {
+    if (!ts) return '';
+    try {
+        const d = new Date(ts);
+        return d.toLocaleString();
+    } catch (e) {
+        return '';
+    }
+}
+
 // Calculate match for recommended skills only
 function calculateRecommendedMatch(recommendedSkills, candidateSkills) {
     if (recommendedSkills.length === 0) return 100; // If no recommended skills, 100% match
@@ -264,7 +275,8 @@ function postJob(e) {
             minimumMatch,
             minYears: minYears,
             requiredRepos: requiredRepos,
-            applications: [] // holds { candidateId, repos: [], status: 'pending'|'accepted'|'rejected', appliedAt }
+            applications: [], // holds { candidateId, repos: [], status: 'pending'|'accepted'|'rejected', appliedAt }
+            postedAt: Date.now()
         };
 
         jobs.push(job);
@@ -343,6 +355,7 @@ function renderJobs() {
             <button class="job-edit-btn" onclick="openJobModalForEdit(${job.id})">Edit</button>
                 <p class="job-company">${job.company}</p>
                 <p class="job-experience">${job.minYears ? 'Min ' + job.minYears + ' yrs' : 'Experience: Any'}</p>
+                <p class="job-posted">Posted: ${formatDateTime(job.postedAt)}</p>
             <p class="job-description">${job.description}</p>
             ${requiredHTML}
             ${recommendedHTML}
@@ -356,10 +369,11 @@ function renderJobs() {
                     const cand = candidates.find(c => c.id === app.candidateId) || { name: 'Unknown', email: '' };
                     return `
                     <div class="applicant-item" style="display:flex; align-items:center; justify-content:space-between; gap:0.5rem; margin-bottom:0.5rem;">
-                        <div>
-                            <p style="font-weight:700; margin-bottom:0.25rem;">${cand.name}</p>
-                            <p style="font-size:0.875rem; color:#6b7280; margin:0;">${cand.email} • ${cand.years || ''} yrs</p>
-                        </div>
+                                <div>
+                                    <p style="font-weight:700; margin-bottom:0.25rem;">${cand.name}</p>
+                                    <p style="font-size:0.875rem; color:#6b7280; margin:0;">${cand.email} • ${cand.years || ''} yrs</p>
+                                    <p style="font-size:0.75rem; color:#9ca3af; margin:0;">Applied: ${formatDateTime(app.appliedAt)}</p>
+                                </div>
                         <div style="display:flex; gap:0.5rem; align-items:center;">
                             <span class="app-status ${app.status}">${app.status}</span>
                             <button class="btn-secondary" onclick="openApplicantModal(${cand.id}, ${job.id})">View</button>
@@ -524,6 +538,14 @@ function openApplicantModal(candidateId, jobId) {
             div.appendChild(a);
             reposContainer.appendChild(div);
         });
+    }
+
+    // show submitted at timestamp
+    const submittedAtEl = document.getElementById('applicantSubmittedAt');
+    const job = jobs.find(j => j.id === jobId);
+    const appRecord = job && job.applications ? job.applications.find(a => a.candidateId === candidateId) : null;
+    if (submittedAtEl) {
+        submittedAtEl.textContent = appRecord && appRecord.appliedAt ? formatDateTime(appRecord.appliedAt) : (repos.length ? 'Unknown time' : 'No submission');
     }
 
     // show status and action buttons
