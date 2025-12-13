@@ -72,6 +72,18 @@
                         </div>
 
                         <div class="form-group">
+                            <label for="jobRequiredRepos">Required GitHub Repos (applicant must submit)</label>
+                            <select id="jobRequiredRepos" class="form-select">
+                                <option value="0">0</option>
+                                <option value="1">1</option>
+                                <option value="2">2</option>
+                                <option value="3" selected>3</option>
+                                <option value="4">4</option>
+                                <option value="5">5</option>
+                            </select>
+                        </div>
+
+                        <div class="form-group">
                             <label for="jobDescription">Job Description</label>
                             <textarea id="jobDescription" class="form-textarea" rows="3" placeholder="Describe the role..."></textarea>
                         </div>
@@ -111,6 +123,49 @@
                     </form>
                 </div>
             </div>
+
+            <!-- Applicant Modal (company views applicant profile + repos) -->
+            <div id="applicantModalOverlay" class="modal-overlay" aria-hidden="true">
+                <div class="modal" role="dialog" aria-modal="true">
+                    <div class="modal-header">
+                        <h3 id="applicantModalTitle">Applicant Details</h3>
+                        <button class="modal-close" onclick="closeApplicantModal()">✕</button>
+                    </div>
+
+                    <div class="form">
+                        <div class="form-group">
+                            <label>Name</label>
+                            <div id="applicantName" style="font-weight:700;"></div>
+                        </div>
+                        <div class="form-group">
+                            <label>Email</label>
+                            <div id="applicantEmail"></div>
+                        </div>
+                        <div class="form-group">
+                            <label>Years</label>
+                            <div id="applicantYears"></div>
+                        </div>
+                        <div class="form-group">
+                            <label>Experience Summary</label>
+                            <div id="applicantExperience"></div>
+                        </div>
+                        <div class="form-group">
+                            <label>Skills</label>
+                            <div id="applicantSkills" class="tags-container"></div>
+                        </div>
+                        <div class="form-group">
+                            <label>Submitted Repositories</label>
+                            <div id="applicantRepos"></div>
+                        </div>
+                        <div id="applicantActionButtons" style="display:flex; gap:0.5rem; margin-top:0.5rem; align-items:center;">
+                            <!-- Action buttons will be populated by script: Accept / Reject / Close -->
+                            <button type="button" class="btn-secondary" onclick="closeApplicantModal()">Close</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            
         </div>
 
         <!-- Candidate Portal -->
@@ -177,6 +232,51 @@
                     <h2 class="card-title">Jobs Matched to You</h2>
                     <div id="matchedJobsList" class="list-container">
                         <p class="empty-state">No matching jobs available</p>
+                    </div>
+                </div>
+                <!-- Match Modal (candidate submits GitHub repo links) -->
+                <div id="matchModalOverlay" class="modal-overlay" aria-hidden="true">
+                    <div class="modal" role="dialog" aria-modal="true">
+                        <div class="modal-header">
+                            <h3 id="matchModalTitle">Submit Repositories</h3>
+                            <button class="modal-close" onclick="closeMatchModal()">✕</button>
+                        </div>
+
+                        <form id="matchForm" class="form">
+                            <input type="hidden" id="matchJobId" value="">
+
+                            <p class="help-text">Provide up to 5 GitHub repository links. The job may require a minimum number of repos — you'll be asked to submit at least that many.</p>
+
+                            <div class="form-group">
+                                <label for="repo1">GitHub Repo Link 1</label>
+                                <input type="url" id="repo1" class="form-input" placeholder="https://github.com/username/repo1">
+                            </div>
+
+                            <div class="form-group">
+                                <label for="repo2">GitHub Repo Link 2</label>
+                                <input type="url" id="repo2" class="form-input" placeholder="https://github.com/username/repo2">
+                            </div>
+
+                            <div class="form-group">
+                                <label for="repo3">GitHub Repo Link 3</label>
+                                <input type="url" id="repo3" class="form-input" placeholder="https://github.com/username/repo3">
+                            </div>
+
+                            <div class="form-group">
+                                <label for="repo4">GitHub Repo Link 4</label>
+                                <input type="url" id="repo4" class="form-input" placeholder="https://github.com/username/repo4">
+                            </div>
+
+                            <div class="form-group">
+                                <label for="repo5">GitHub Repo Link 5</label>
+                                <input type="url" id="repo5" class="form-input" placeholder="https://github.com/username/repo5">
+                            </div>
+
+                            <div style="display:flex; gap:0.5rem;">
+                                <button type="submit" class="btn-primary">Submit Repos</button>
+                                <button type="button" class="btn-secondary" onclick="closeMatchModal()">Cancel</button>
+                            </div>
+                        </form>
                     </div>
                 </div>
             </div>

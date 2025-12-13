@@ -238,6 +238,8 @@ function postJob(e) {
         return;
     }
 
+    const requiredRepos = parseInt(document.getElementById('jobRequiredRepos')?.value || 0, 10);
+
     if (editingJobId) {
         // update existing job
         const jobIndex = jobs.findIndex(j => j.id === editingJobId);
@@ -249,6 +251,7 @@ function postJob(e) {
             jobs[jobIndex].recommendedSkills = [...currentRecommendedSkills];
             jobs[jobIndex].minimumMatch = minimumMatch;
             jobs[jobIndex].minYears = minYears;
+            jobs[jobIndex].requiredRepos = requiredRepos;
         }
     } else {
         const job = {
@@ -259,7 +262,9 @@ function postJob(e) {
             requiredSkills: [...currentRequiredSkills],
             recommendedSkills: [...currentRecommendedSkills],
             minimumMatch,
-            minYears: minYears
+            minYears: minYears,
+            requiredRepos: requiredRepos,
+            applications: [] // holds { candidateId, repos: [], status: 'pending'|'accepted'|'rejected', appliedAt }
         };
 
         jobs.push(job);
@@ -302,6 +307,9 @@ function renderJobs() {
     jobs.forEach(job => {
         const qualifiedCount = getQualifiedCandidatesCount(job);
         const qualifiedApplicants = getQualifiedCandidates(job);
+        // use job.applications to determine applicants who submitted required repos
+        const jobAppsAll = job.applications || [];
+        const applicantsFiltered = jobAppsAll.filter(a => (a.repos && a.repos.length >= (job.requiredRepos || 0)));
 
         const jobDiv = document.createElement('div');
         jobDiv.className = 'job-item';
@@ -331,7 +339,7 @@ function renderJobs() {
         }
 
         jobDiv.innerHTML = `
-            <h3 class="job-title">${job.title}</h3>
+            <h3 class="job-title">${job.title} ${applicantsFiltered.length ? '<span class="app-count-badge">' + applicantsFiltered.length + '</span>' : ''}</h3>
             <button class="job-edit-btn" onclick="openJobModalForEdit(${job.id})">Edit</button>
                 <p class="job-company">${job.company}</p>
                 <p class="job-experience">${job.minYears ? 'Min ' + job.minYears + ' yrs' : 'Experience: Any'}</p>
@@ -343,13 +351,23 @@ function renderJobs() {
                 <p class="minimum-match">Candidates must have ALL required skills + ${job.minimumMatch}% of recommended skills</p>
             </div>
             <div class="applicants-list">
-                <p class="job-requirements-label">Qualified Applicants:</p>
-                ${qualifiedApplicants.length === 0 ? '<p class="no-matches">No qualified applicants yet</p>' : qualifiedApplicants.map(app => `
-                    <div class="applicant-item">
-                        <p style="font-weight:700; margin-bottom:0.25rem;">${app.name}</p>
-                        <p style="font-size:0.875rem; color:#6b7280; margin:0;">${app.email} • ${app.experience || ''}</p>
+                <p class="job-requirements-label">Applicants:</p>
+                ${applicantsFiltered.length === 0 ? '<p class="no-matches">No applicants yet</p>' : applicantsFiltered.map(app => {
+                    const cand = candidates.find(c => c.id === app.candidateId) || { name: 'Unknown', email: '' };
+                    return `
+                    <div class="applicant-item" style="display:flex; align-items:center; justify-content:space-between; gap:0.5rem; margin-bottom:0.5rem;">
+                        <div>
+                            <p style="font-weight:700; margin-bottom:0.25rem;">${cand.name}</p>
+                            <p style="font-size:0.875rem; color:#6b7280; margin:0;">${cand.email} • ${cand.years || ''} yrs</p>
+                        </div>
+                        <div style="display:flex; gap:0.5rem; align-items:center;">
+                            <span class="app-status ${app.status}">${app.status}</span>
+                            <button class="btn-secondary" onclick="openApplicantModal(${cand.id}, ${job.id})">View</button>
+                            <button class="btn-accept" onclick="acceptApplication(${cand.id}, ${job.id})">Accept</button>
+                            <button class="btn-reject" onclick="rejectApplication(${cand.id}, ${job.id})">Reject</button>
+                        </div>
                     </div>
-                `).join('')}
+                `}).join('')}
             </div>
         `;
         container.appendChild(jobDiv);
@@ -460,6 +478,7 @@ function openJobModalForEdit(jobId) {
     document.getElementById('jobDescription').value = job.description;
     document.getElementById('minimumMatch').value = job.minimumMatch || 50;
     document.getElementById('jobMinYears').value = job.minYears || '';
+    if (document.getElementById('jobRequiredRepos')) document.getElementById('jobRequiredRepos').value = job.requiredRepos || 0;
     updateMatchValue(document.getElementById('minimumMatch').value);
 
     currentRequiredSkills = [...(job.requiredSkills || [])];
@@ -468,6 +487,86 @@ function openJobModalForEdit(jobId) {
 
     document.getElementById('jobModalOverlay').classList.add('active');
     document.getElementById('jobModalOverlay').setAttribute('aria-hidden', 'false');
+}
+
+// Company: open applicant details modal
+function openApplicantModal(candidateId, jobId) {
+    const candidate = candidates.find(c => c.id === candidateId);
+    if (!candidate) return;
+
+    document.getElementById('applicantName').textContent = candidate.name || '';
+    document.getElementById('applicantEmail').textContent = candidate.email || '';
+    document.getElementById('applicantYears').textContent = candidate.years != null ? (candidate.years + ' yrs') : '';
+    document.getElementById('applicantExperience').textContent = candidate.experience || '';
+
+    const skillsContainer = document.getElementById('applicantSkills');
+    skillsContainer.innerHTML = '';
+    (candidate.skills || []).forEach(skill => {
+        const tag = document.createElement('span');
+        tag.className = 'tag tag-skill';
+        tag.textContent = skill;
+        skillsContainer.appendChild(tag);
+    });
+
+    // repos submitted for this job
+    const reposContainer = document.getElementById('applicantRepos');
+    reposContainer.innerHTML = '';
+    const repos = (candidate.matches && candidate.matches[jobId]) ? candidate.matches[jobId] : [];
+    if (repos.length === 0) {
+        reposContainer.innerHTML = '<p class="no-matches">No repositories submitted</p>';
+    } else {
+        repos.forEach(link => {
+            const a = document.createElement('a');
+            a.href = link;
+            a.target = '_blank';
+            a.textContent = link;
+            const div = document.createElement('div');
+            div.appendChild(a);
+            reposContainer.appendChild(div);
+        });
+    }
+
+    // show status and action buttons
+    const actionContainer = document.getElementById('applicantActionButtons');
+    if (actionContainer) {
+        const job = jobs.find(j => j.id === jobId);
+        const app = job && job.applications ? job.applications.find(a => a.candidateId === candidateId) : null;
+        const status = app ? app.status : 'pending';
+        actionContainer.innerHTML = '';
+        const statusSpan = document.createElement('span');
+        statusSpan.className = 'app-status ' + status;
+        statusSpan.textContent = status;
+        actionContainer.appendChild(statusSpan);
+
+        // Accept / Reject buttons (only show when pending)
+        if (status === 'pending') {
+            const acceptBtn = document.createElement('button');
+            acceptBtn.className = 'btn-accept';
+            acceptBtn.textContent = 'Accept';
+            acceptBtn.onclick = function() { acceptApplication(candidateId, jobId); closeApplicantModal(); };
+            actionContainer.appendChild(acceptBtn);
+
+            const rejectBtn = document.createElement('button');
+            rejectBtn.className = 'btn-reject';
+            rejectBtn.textContent = 'Reject';
+            rejectBtn.onclick = function() { rejectApplication(candidateId, jobId); closeApplicantModal(); };
+            actionContainer.appendChild(rejectBtn);
+        }
+
+        const closeBtn = document.createElement('button');
+        closeBtn.className = 'btn-secondary';
+        closeBtn.textContent = 'Close';
+        closeBtn.onclick = closeApplicantModal;
+        actionContainer.appendChild(closeBtn);
+    }
+
+    document.getElementById('applicantModalOverlay').classList.add('active');
+    document.getElementById('applicantModalOverlay').setAttribute('aria-hidden', 'false');
+}
+
+function closeApplicantModal() {
+    document.getElementById('applicantModalOverlay').classList.remove('active');
+    document.getElementById('applicantModalOverlay').setAttribute('aria-hidden', 'true');
 }
 
 // Render matched jobs for current candidate
@@ -517,9 +616,20 @@ function renderMatchedJobs() {
 
         const jobDiv = document.createElement('div');
         jobDiv.className = 'matched-job';
+
+        // check if currentCandidate already submitted repos for this job
+        const submitted = (currentCandidate.matches && currentCandidate.matches[job.id]);
+
         jobDiv.innerHTML = `
-            <h4 class="job-title">${job.title}</h4>
-            <p class="job-company">${job.company}</p>
+            <div style="display:flex; justify-content:space-between; align-items:center;">
+                <div>
+                    <h4 class="job-title">${job.title}</h4>
+                    <p class="job-company">${job.company}</p>
+                </div>
+                <div>
+                    ${submitted ? '<span class="submitted-label">Repos Submitted</span>' : `<button class="btn-match" onclick="openMatchModal(${job.id})">Match</button>`}
+                </div>
+            </div>
             <p class="job-description">${job.description}</p>
             ${requiredHTML}
             ${recommendedHTML}
@@ -530,14 +640,142 @@ function renderMatchedJobs() {
                     <p class="match-details">You have all required skills + ${recommendedMatch}% of recommended skills</p>
                 </div>
             </div>
+            ${submitted ? `<div style="margin-top:0.75rem;"><p class="job-requirements-label">Submitted Repositories:</p>${currentCandidate.matches[job.id].map(link=>`<div><a href="${link}" target="_blank">${link}</a></div>`).join('')}</div>` : ''}
         `;
+
         container.appendChild(jobDiv);
     });
 }
 
+// Match modal handlers
+function openMatchModal(jobId) {
+    if (!currentCandidate) {
+        alert('Create your profile first to submit repositories.');
+        return;
+    }
+    document.getElementById('matchJobId').value = jobId;
+    // prefill if already submitted
+    const job = jobs.find(j => j.id === jobId) || { requiredRepos: 0 };
+    const required = job.requiredRepos || 0;
+
+    // clear and prefill up to 5 inputs
+    const links = (currentCandidate.matches && currentCandidate.matches[jobId]) ? currentCandidate.matches[jobId] : [];
+
+    // determine how many inputs to show: if job requires N (>0) show N inputs; otherwise show up to 5
+    let displayCount = required > 0 ? required : 5;
+    // if candidate already submitted more links than required, show them
+    displayCount = Math.max(displayCount, links.length);
+    displayCount = Math.min(displayCount, 5);
+
+    for (let i = 1; i <= 5; i++) {
+        const el = document.getElementById('repo' + i);
+        if (!el) continue;
+        el.value = links[i - 1] || '';
+        // enforce required attribute for the number required by job
+        el.required = i <= required;
+        // show/hide based on displayCount
+        const wrapper = el.closest('.form-group');
+        if (wrapper) wrapper.style.display = (i <= displayCount) ? '' : 'none';
+        else el.style.display = (i <= displayCount) ? '' : 'none';
+    }
+    // store required count in a data attribute so submit handler can reference easily
+    document.getElementById('matchForm').dataset.requiredRepos = required;
+    document.getElementById('matchModalOverlay').classList.add('active');
+    document.getElementById('matchModalOverlay').setAttribute('aria-hidden', 'false');
+}
+
+function closeMatchModal() {
+    document.getElementById('matchModalOverlay').classList.remove('active');
+    document.getElementById('matchModalOverlay').setAttribute('aria-hidden', 'true');
+}
+
+function submitMatch(e) {
+    e.preventDefault();
+    if (!currentCandidate) {
+        alert('Create your profile first to submit repositories.');
+        return;
+    }
+
+    const jobId = parseInt(document.getElementById('matchJobId').value, 10);
+    // collect up to 5 repo inputs
+    const urls = [];
+    const urlPattern = /^(https?:\/\/)/i;
+    for (let i = 1; i <= 5; i++) {
+        const el = document.getElementById('repo' + i);
+        if (!el) continue;
+        const v = el.value.trim();
+        if (v) {
+            if (!urlPattern.test(v)) {
+                alert('Please provide valid URLs (must start with http:// or https://).');
+                return;
+            }
+            urls.push(v);
+        }
+    }
+
+    // required number enforced by job setting
+    const requiredCount = parseInt(document.getElementById('matchForm').dataset.requiredRepos || 0, 10);
+    if (urls.length < requiredCount) {
+        alert(`This job requires at least ${requiredCount} repository link(s). Please provide ${requiredCount} or more.`);
+        return;
+    }
+
+    // store in currentCandidate and in candidates array (store only submitted links)
+    if (!currentCandidate.matches) currentCandidate.matches = {};
+    currentCandidate.matches[jobId] = urls;
+
+    // update candidates array entry
+    const idx = candidates.findIndex(c => c.id === currentCandidate.id);
+    if (idx !== -1) candidates[idx] = currentCandidate;
+
+    // also register/update an application record on the job
+    const job = jobs.find(j => j.id === jobId);
+    if (job) {
+        if (!job.applications) job.applications = [];
+        const existing = job.applications.find(a => a.candidateId === currentCandidate.id);
+        if (existing) {
+            existing.repos = urls;
+            existing.status = 'pending';
+            existing.appliedAt = Date.now();
+        } else {
+            job.applications.push({ candidateId: currentCandidate.id, repos: urls, status: 'pending', appliedAt: Date.now() });
+        }
+    }
+
+    closeMatchModal();
+    renderMatchedJobs();
+    renderJobs();
+    alert('Repositories submitted successfully.');
+}
+
+// Accept / Reject handlers for applications
+function acceptApplication(candidateId, jobId) {
+    const job = jobs.find(j => j.id === jobId);
+    if (!job || !job.applications) return;
+    const app = job.applications.find(a => a.candidateId === candidateId);
+    if (!app) return;
+    app.status = 'accepted';
+    app.decisionAt = Date.now();
+    renderJobs();
+    alert('Applicant accepted.');
+}
+
+function rejectApplication(candidateId, jobId) {
+    const job = jobs.find(j => j.id === jobId);
+    if (!job || !job.applications) return;
+    const app = job.applications.find(a => a.candidateId === candidateId);
+    if (!app) return;
+    app.status = 'rejected';
+    app.decisionAt = Date.now();
+    renderJobs();
+    alert('Applicant rejected.');
+}
+
+
 // Event listeners
 document.getElementById('jobForm').addEventListener('submit', postJob);
 document.getElementById('candidateForm').addEventListener('submit', submitProfile);
+document.getElementById('matchForm').addEventListener('submit', submitMatch);
 
 // Allow Enter key to add requirements/skills
 document.getElementById('requirement').addEventListener('keypress', function(e) {
