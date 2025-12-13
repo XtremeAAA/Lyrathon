@@ -1,9 +1,9 @@
 // Data storage
 let jobs = [];
-let candidates = [];
-let currentRequirements = []; // array of { text: string, required: boolean }
+let currentCandidate = null;
+let currentRequiredSkills = [];
+let currentRecommendedSkills = [];
 let currentSkills = [];
-let currentCandidate = null; // holds the single candidate profile after creation
 
 // Tab switching
 function switchTab(tab) {
@@ -34,37 +34,66 @@ function updateMatchValue(value) {
 // Add requirement
 function addRequirement() {
     const input = document.getElementById('requirement');
-    const requirement = input.value.trim();
     const typeSelect = document.getElementById('requirementType');
-    const type = typeSelect ? typeSelect.value : 'recommended';
+    const requirement = input.value.trim();
+    const type = typeSelect.value;
 
     if (requirement) {
-        currentRequirements.push({ text: requirement, required: type === 'required' });
+        if (type === 'required') {
+            currentRequiredSkills.push(requirement);
+        } else {
+            currentRecommendedSkills.push(requirement);
+        }
         input.value = '';
         renderRequirements();
     }
 }
 
 // Remove requirement
-function removeRequirement(index) {
-    currentRequirements.splice(index, 1);
+function removeRequirement(index, type) {
+    if (type === 'required') {
+        currentRequiredSkills.splice(index, 1);
+    } else {
+        currentRecommendedSkills.splice(index, 1);
+    }
     renderRequirements();
 }
 
 // Render requirements
 function renderRequirements() {
-    const container = document.getElementById('requirementsList');
-    container.innerHTML = '';
+    const requiredContainer = document.getElementById('requiredTags');
+    const recommendedContainer = document.getElementById('recommendedTags');
+    
+    requiredContainer.innerHTML = '';
+    recommendedContainer.innerHTML = '';
 
-    currentRequirements.forEach((req, index) => {
-        const tag = document.createElement('span');
-        tag.className = 'tag ' + (req.required ? 'requirement-required' : 'requirement-recommended');
-        tag.innerHTML = `
-            ${req.text}
-            <button class="tag-remove" onclick="removeRequirement(${index})">✕</button>
-        `;
-        container.appendChild(tag);
-    });
+    if (currentRequiredSkills.length === 0) {
+        requiredContainer.innerHTML = '<span style="color: #9ca3af; font-size: 0.875rem;">No required skills added</span>';
+    } else {
+        currentRequiredSkills.forEach((req, index) => {
+            const tag = document.createElement('span');
+            tag.className = 'tag tag-required';
+            tag.innerHTML = `
+                ${req}
+                <button class="tag-remove" onclick="removeRequirement(${index}, 'required')">✕</button>
+            `;
+            requiredContainer.appendChild(tag);
+        });
+    }
+
+    if (currentRecommendedSkills.length === 0) {
+        recommendedContainer.innerHTML = '<span style="color: #9ca3af; font-size: 0.875rem;">No recommended skills added</span>';
+    } else {
+        currentRecommendedSkills.forEach((req, index) => {
+            const tag = document.createElement('span');
+            tag.className = 'tag tag-recommended';
+            tag.innerHTML = `
+                ${req}
+                <button class="tag-remove" onclick="removeRequirement(${index}, 'recommended')">✕</button>
+            `;
+            recommendedContainer.appendChild(tag);
+        });
+    }
 }
 
 // Add skill
@@ -90,70 +119,74 @@ function renderSkills() {
     const container = document.getElementById('skillsList');
     container.innerHTML = '';
 
-    currentSkills.forEach((skill, index) => {
-        const tag = document.createElement('span');
-        tag.className = 'tag tag-skill';
-        tag.innerHTML = `
-            ${skill}
-            <button class="tag-remove" onclick="removeSkill(${index})">✕</button>
-        `;
-        container.appendChild(tag);
+    if (currentSkills.length === 0) {
+        container.innerHTML = '<span style="color: #9ca3af; font-size: 0.875rem;">No skills added yet</span>';
+    } else {
+        currentSkills.forEach((skill, index) => {
+            const tag = document.createElement('span');
+            tag.className = 'tag tag-skill';
+            tag.innerHTML = `
+                ${skill}
+                <button class="tag-remove" onclick="removeSkill(${index})">✕</button>
+            `;
+            container.appendChild(tag);
+        });
+    }
+}
+
+// Check if candidate has a skill that matches requirement
+function hasSkill(candidateSkills, requirement) {
+    const reqLower = requirement.toLowerCase();
+    return candidateSkills.some(skill => {
+        const skillLower = skill.toLowerCase();
+        return skillLower.includes(reqLower) || reqLower.includes(skillLower);
     });
 }
 
-// Calculate match percentage
-function calculateMatch(jobRequirements, candidateSkills) {
-    // jobRequirements expected to be array of { text, required }
-    const recommended = jobRequirements.filter(r => !r.required).map(r => r.text);
-
-    if (recommended.length === 0) return 100; // if no recommended skills, treat matched percent as 100%
-
+// Calculate match for recommended skills only
+function calculateRecommendedMatch(recommendedSkills, candidateSkills) {
+    if (recommendedSkills.length === 0) return 100; // If no recommended skills, 100% match
+    
     let matches = 0;
-    recommended.forEach(req => {
-        const reqLower = req.toLowerCase();
-        candidateSkills.forEach(skill => {
-            const skillLower = skill.toLowerCase();
-            if (skillLower.includes(reqLower) || reqLower.includes(skillLower)) {
-                matches++;
-            }
-        });
+    recommendedSkills.forEach(req => {
+        if (hasSkill(candidateSkills, req)) {
+            matches++;
+        }
     });
-
-    matches = Math.min(matches, recommended.length);
-    return (matches / recommended.length) * 100;
+    
+    return (matches / recommendedSkills.length) * 100;
 }
 
-function hasAllRequired(jobRequirements, candidateSkills) {
-    const required = jobRequirements.filter(r => r.required).map(r => r.text);
-    if (required.length === 0) return true;
-
-    return required.every(req => {
-        const reqLower = req.toLowerCase();
-        return candidateSkills.some(skill => {
-            const skillLower = skill.toLowerCase();
-            return skillLower.includes(reqLower) || reqLower.includes(skillLower);
-        });
-    });
+// Check if candidate meets all required skills
+function meetsRequiredSkills(requiredSkills, candidateSkills) {
+    if (requiredSkills.length === 0) return true; // No required skills means automatically qualified
+    
+    return requiredSkills.every(req => hasSkill(candidateSkills, req));
 }
 
-// Get qualified candidates for a job
-function getQualifiedCandidates(job) {
-    return candidates.filter(candidate => {
-        const hasRequired = hasAllRequired(job.requirements, candidate.skills);
-        if (!hasRequired) return false;
-        const recMatch = calculateMatch(job.requirements, candidate.skills);
-        return recMatch >= job.minimumMatch;
-    });
+// Check if candidate qualifies for a job
+function isQualified(job, candidateSkills) {
+    // Must have ALL required skills
+    if (!meetsRequiredSkills(job.requiredSkills, candidateSkills)) {
+        return false;
+    }
+    
+    // Must meet minimum percentage of recommended skills
+    const recommendedMatch = calculateRecommendedMatch(job.recommendedSkills, candidateSkills);
+    return recommendedMatch >= job.minimumMatch;
 }
 
-// Get visible jobs for a candidate
-function getVisibleJobs(candidate) {
-    return jobs.filter(job => {
-        const hasRequired = hasAllRequired(job.requirements, candidate.skills);
-        if (!hasRequired) return false;
-        const recMatch = calculateMatch(job.requirements, candidate.skills);
-        return recMatch >= job.minimumMatch;
-    });
+// Get qualified candidates count for a job
+function getQualifiedCandidatesCount(job) {
+    if (!currentCandidate) return 0;
+    return isQualified(job, currentCandidate.skills) ? 1 : 0;
+}
+
+// Get visible jobs for current candidate
+function getVisibleJobs() {
+    if (!currentCandidate) return [];
+    
+    return jobs.filter(job => isQualified(job, currentCandidate.skills));
 }
 
 // Post job
@@ -165,8 +198,13 @@ function postJob(e) {
     const description = document.getElementById('jobDescription').value.trim();
     const minimumMatch = parseInt(document.getElementById('minimumMatch').value);
 
-    if (!title || !company || currentRequirements.length === 0) {
-        alert('Please fill in all required fields and add at least one requirement');
+    if (!title || !company) {
+        alert('Please fill in job title and company name');
+        return;
+    }
+
+    if (currentRequiredSkills.length === 0 && currentRecommendedSkills.length === 0) {
+        alert('Please add at least one required or recommended skill');
         return;
     }
 
@@ -175,7 +213,8 @@ function postJob(e) {
         title,
         company,
         description,
-        requirements: currentRequirements.map(r => ({ text: r.text || r, required: !!r.required })),
+        requiredSkills: [...currentRequiredSkills],
+        recommendedSkills: [...currentRecommendedSkills],
         minimumMatch
     };
 
@@ -183,14 +222,17 @@ function postJob(e) {
 
     // Reset form
     document.getElementById('jobForm').reset();
-    currentRequirements = [];
+    currentRequiredSkills = [];
+    currentRecommendedSkills = [];
     renderRequirements();
     document.getElementById('minimumMatch').value = 50;
     updateMatchValue(50);
 
     // Update displays
     renderJobs();
-    renderMatchedJobs();
+    if (currentCandidate) {
+        renderMatchedJobs();
+    }
 
     alert('Job posted successfully!');
 }
@@ -207,27 +249,44 @@ function renderJobs() {
     container.innerHTML = '';
 
     jobs.forEach(job => {
-        const qualifiedCount = getQualifiedCandidates(job).length;
+        const qualifiedCount = getQualifiedCandidatesCount(job);
 
         const jobDiv = document.createElement('div');
         jobDiv.className = 'job-item';
+        
+        let requiredHTML = '';
+        if (job.requiredSkills.length > 0) {
+            requiredHTML = `
+                <div class="job-requirements-section">
+                    <p class="job-requirements-label">Required Skills:</p>
+                    <div class="job-requirements">
+                        ${job.requiredSkills.map(req => `<span class="requirement-tag requirement-required">${req}</span>`).join('')}
+                    </div>
+                </div>
+            `;
+        }
+        
+        let recommendedHTML = '';
+        if (job.recommendedSkills.length > 0) {
+            recommendedHTML = `
+                <div class="job-requirements-section">
+                    <p class="job-requirements-label">Recommended Skills:</p>
+                    <div class="job-requirements">
+                        ${job.recommendedSkills.map(req => `<span class="requirement-tag requirement-recommended">${req}</span>`).join('')}
+                    </div>
+                </div>
+            `;
+        }
+
         jobDiv.innerHTML = `
             <h3 class="job-title">${job.title}</h3>
             <p class="job-company">${job.company}</p>
             <p class="job-description">${job.description}</p>
-            <div>
-                <p class="job-requirements-label">Requirements:</p>
-                <div class="job-requirements">
-                    ${job.requirements.map(req => {
-                        const text = req.text || req;
-                        const cls = (req.required ? 'requirement-required' : 'requirement-recommended');
-                        return `<span class="requirement-tag ${cls}">${text}</span>`;
-                    }).join('')}
-                </div>
-            </div>
+            ${requiredHTML}
+            ${recommendedHTML}
             <div class="job-footer">
                 <p class="qualified-count">${qualifiedCount} qualified candidate(s) can see this job</p>
-                <p class="minimum-match">Minimum match: ${job.minimumMatch}%</p>
+                <p class="minimum-match">Candidates must have ALL required skills + ${job.minimumMatch}% of recommended skills</p>
             </div>
         `;
         container.appendChild(jobDiv);
@@ -247,12 +306,7 @@ function submitProfile(e) {
         return;
     }
 
-    if (currentCandidate) {
-        alert('A profile already exists for this session. Refresh to create a new one.');
-        return;
-    }
-
-    const candidate = {
+    currentCandidate = {
         id: Date.now(),
         name,
         email,
@@ -260,68 +314,107 @@ function submitProfile(e) {
         skills: [...currentSkills]
     };
 
-    // store as the single current candidate and also add to candidates array for company-side counts
-    currentCandidate = candidate;
-    candidates.push(candidate);
+    // Hide profile creation, show jobs display
+    document.getElementById('profileCreationSection').style.display = 'none';
+    document.getElementById('jobsDisplaySection').style.display = 'block';
 
-    // Hide the candidate form so user only sees matched jobs
-    document.getElementById('candidateForm').style.display = 'none';
-
-    // Reset temporary skills UI
-    document.getElementById('candidateForm').reset();
-    currentSkills = [];
-    renderSkills();
+    // Display profile info
+    document.getElementById('profileNameDisplay').textContent = currentCandidate.name;
+    document.getElementById('profileEmailDisplay').textContent = currentCandidate.email;
+    
+    const skillsDisplay = document.getElementById('profileSkillsDisplay');
+    skillsDisplay.innerHTML = '';
+    currentCandidate.skills.forEach(skill => {
+        const tag = document.createElement('span');
+        tag.className = 'tag tag-skill';
+        tag.textContent = skill;
+        skillsDisplay.appendChild(tag);
+    });
 
     // Update displays
     renderMatchedJobs();
-    renderJobs();
+    renderJobs(); // Update job list to show qualified count
 
     alert('Profile created successfully!');
 }
 
-// Render matched jobs for candidates
+// Edit profile
+function editProfile() {
+    // Show profile creation, hide jobs display
+    document.getElementById('profileCreationSection').style.display = 'block';
+    document.getElementById('jobsDisplaySection').style.display = 'none';
+
+    // Pre-fill form with current data
+    document.getElementById('candidateName').value = currentCandidate.name;
+    document.getElementById('candidateEmail').value = currentCandidate.email;
+    document.getElementById('candidateExperience').value = currentCandidate.experience;
+    currentSkills = [...currentCandidate.skills];
+    renderSkills();
+}
+
+// Render matched jobs for current candidate
 function renderMatchedJobs() {
     const container = document.getElementById('matchedJobsList');
-    // if no profile created, force the user to create one to see matches
+    
     if (!currentCandidate) {
         container.innerHTML = '<p class="empty-state">Create your profile to see matched jobs</p>';
         return;
     }
 
-    const candidate = currentCandidate;
-    const visibleJobs = getVisibleJobs(candidate);
+    const visibleJobs = getVisibleJobs();
+    
+    if (visibleJobs.length === 0) {
+        container.innerHTML = '<p class="empty-state">No matching jobs available. Try adding more skills to your profile!</p>';
+        return;
+    }
 
     container.innerHTML = '';
 
-    const candidateDiv = document.createElement('div');
-    candidateDiv.className = 'candidate-section';
-
-    let jobsHTML = '';
-    if (visibleJobs.length === 0) {
-        jobsHTML = '<p class="no-matches">No jobs match your qualifications yet</p>';
-    } else {
-        jobsHTML = visibleJobs.map(job => {
-            const matchPercentage = Math.round(calculateMatch(job.requirements, candidate.skills));
-            return `
-                <div class="matched-job">
-                    <h4 class="job-title">${job.title}</h4>
-                    <p class="job-company">${job.company}</p>
-                    <p class="job-description">${job.description}</p>
-                    <div class="match-indicator">
-                        <span style="color: #10b981;">✓</span>
-                        <span class="match-percentage">${matchPercentage}% Match</span>
+    visibleJobs.forEach(job => {
+        const recommendedMatch = Math.round(calculateRecommendedMatch(job.recommendedSkills, currentCandidate.skills));
+        
+        let requiredHTML = '';
+        if (job.requiredSkills.length > 0) {
+            requiredHTML = `
+                <div class="job-requirements-section">
+                    <p class="job-requirements-label">Required Skills:</p>
+                    <div class="job-requirements">
+                        ${job.requiredSkills.map(req => `<span class="requirement-tag requirement-required">${req}</span>`).join('')}
                     </div>
                 </div>
             `;
-        }).join('');
-    }
+        }
+        
+        let recommendedHTML = '';
+        if (job.recommendedSkills.length > 0) {
+            recommendedHTML = `
+                <div class="job-requirements-section">
+                    <p class="job-requirements-label">Recommended Skills:</p>
+                    <div class="job-requirements">
+                        ${job.recommendedSkills.map(req => `<span class="requirement-tag requirement-recommended">${req}</span>`).join('')}
+                    </div>
+                </div>
+            `;
+        }
 
-    candidateDiv.innerHTML = `
-        <h3 class="candidate-name">${candidate.name}'s Matches</h3>
-        ${jobsHTML}
-    `;
-
-    container.appendChild(candidateDiv);
+        const jobDiv = document.createElement('div');
+        jobDiv.className = 'matched-job';
+        jobDiv.innerHTML = `
+            <h4 class="job-title">${job.title}</h4>
+            <p class="job-company">${job.company}</p>
+            <p class="job-description">${job.description}</p>
+            ${requiredHTML}
+            ${recommendedHTML}
+            <div class="match-indicator">
+                <span style="color: #10b981; font-size: 1.25rem;">✓</span>
+                <div>
+                    <p class="match-percentage">Qualified for this position!</p>
+                    <p class="match-details">You have all required skills + ${recommendedMatch}% of recommended skills</p>
+                </div>
+            </div>
+        `;
+        container.appendChild(jobDiv);
+    });
 }
 
 // Event listeners
@@ -342,3 +435,7 @@ document.getElementById('skill').addEventListener('keypress', function(e) {
         addSkill();
     }
 });
+
+// Initialize
+renderRequirements();
+renderSkills();

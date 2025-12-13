@@ -57,19 +57,28 @@
                             <label for="requirement">Requirements / Skills</label>
                             <div class="input-group">
                                 <input type="text" id="requirement" class="form-input" placeholder="e.g., React, Python, 5 years experience">
-                                <select id="requirementType" class="form-input requirement-type">
+                                <select id="requirementType" class="form-select">
                                     <option value="required">Required</option>
-                                    <option value="recommended" selected>Recommended</option>
+                                    <option value="recommended">Recommended</option>
                                 </select>
                                 <button type="button" class="btn-add" onclick="addRequirement()">+</button>
                             </div>
-                            <div id="requirementsList" class="tags-container"></div>
+                            
+                            <div id="requiredList" class="requirements-section">
+                                <p class="requirements-header">Required Skills:</p>
+                                <div id="requiredTags" class="tags-container"></div>
+                            </div>
+                            
+                            <div id="recommendedList" class="requirements-section">
+                                <p class="requirements-header">Recommended Skills:</p>
+                                <div id="recommendedTags" class="tags-container"></div>
+                            </div>
                         </div>
 
                         <div class="form-group">
-                            <label for="minimumMatch">Minimum Match Percentage: <span id="matchValue">50</span>%</label>
+                            <label for="minimumMatch">Minimum Match for Recommended Skills: <span id="matchValue">50</span>%</label>
                             <input type="range" id="minimumMatch" class="slider" min="0" max="100" step="10" value="50" oninput="updateMatchValue(this.value)">
-                            <p class="help-text">Only candidates matching <span id="matchValueText">50</span>% or more of requirements will see this job</p>
+                            <p class="help-text">Candidates must have ALL required skills and at least <span id="matchValueText">50</span>% of recommended skills</p>
                         </div>
 
                         <button type="submit" class="btn-primary">Post Job</button>
@@ -88,10 +97,11 @@
 
         <!-- Candidate Portal -->
         <div id="candidatePortal" class="portal">
-            <div class="grid">
-                <!-- Candidate Profile Form -->
+            <!-- Profile Creation Form -->
+            <div id="profileCreationSection" class="single-column">
                 <div class="card">
                     <h2 class="card-title">Create Your Profile</h2>
+                    <p class="card-subtitle">Create your profile to see matched jobs</p>
                     
                     <form id="candidateForm" class="form">
                         <div class="form-group">
@@ -118,15 +128,32 @@
                             <div id="skillsList" class="tags-container"></div>
                         </div>
 
-                        <button type="submit" class="btn-primary">Create Profile</button>
+                        <button type="submit" class="btn-primary">Create Profile & See Matched Jobs</button>
                     </form>
                 </div>
+            </div>
 
-                <!-- Available Jobs -->
+            <!-- Jobs Display (Hidden until profile created) -->
+            <div id="jobsDisplaySection" class="single-column" style="display: none;">
+                <div class="card">
+                    <div class="profile-header">
+                        <div>
+                            <h2 class="card-title" id="profileNameDisplay"></h2>
+                            <p class="profile-email" id="profileEmailDisplay"></p>
+                        </div>
+                        <button onclick="editProfile()" class="btn-secondary">Edit Profile</button>
+                    </div>
+                    
+                    <div class="profile-skills">
+                        <p class="skills-label">Your Skills:</p>
+                        <div id="profileSkillsDisplay" class="tags-container"></div>
+                    </div>
+                </div>
+
                 <div class="card">
                     <h2 class="card-title">Jobs Matched to You</h2>
                     <div id="matchedJobsList" class="list-container">
-                        <p class="empty-state">Create your profile to see matched jobs</p>
+                        <p class="empty-state">No matching jobs available</p>
                     </div>
                 </div>
             </div>
