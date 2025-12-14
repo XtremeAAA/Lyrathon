@@ -1,0 +1,5 @@
+{
+  "name": "ResumeAI - Intelligent CV Scorer",
+  "description": "An AI-powered resume analysis tool for recruiters. Upload a PDF resume to get an instant score, detailed feedback, and candidate insights powered by Gemini 2.5.",
+  "requestFramePermissions": []
+}
