@@ -1,0 +1,135 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Code Analyzer Test</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 50px auto;
+            padding: 20px;
+            background-color: #f4f7f9;
+        }
+        
+        .container {
+            background: white;
+            padding: 30px;
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        
+        h1 {
+            color: #007bff;
+            margin-bottom: 20px;
+        }
+        
+        textarea {
+            width: 100%;
+            height: 200px;
+            padding: 10px;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+            font-family: 'Courier New', monospace;
+            font-size: 14px;
+            box-sizing: border-box;
+        }
+        
+        button {
+            background-color: #28a745;
+            color: white;
+            border: none;
+            padding: 12px 30px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 16px;
+            margin-top: 15px;
+        }
+        
+        button:hover {
+            background-color: #218838;
+        }
+        
+        button:disabled {
+            background-color: #ccc;
+            cursor: not-allowed;
+        }
+        
+        #result {
+            margin-top: 20px;
+            padding: 15px;
+            background-color: #e9ecef;
+            border-radius: 4px;
+            display: none;
+        }
+        
+        #result h3 {
+            margin-top: 0;
+            color: #007bff;
+        }
+        
+        .loading {
+            color: #007bff;
+            font-style: italic;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🤖 AI Code Analyzer</h1>
+        <p>Paste your code below and get it rated by AI!</p>
+        
+        <textarea id="codeInput" placeholder="def hello():&#10;    print('Hello World!')"></textarea>
+        
+        <button id="analyzeBtn" onclick="analyzeCode()">Analyze Code</button>
+        
+        <div id="result">
+            <h3>AI Analysis:</h3>
+            <div id="resultText"></div>
+        </div>
+    </div>
+
+    <script>
+        async function analyzeCode() {
+            const code = document.getElementById('codeInput').value.trim();
+            const button = document.getElementById('analyzeBtn');
+            const resultDiv = document.getElementById('result');
+            const resultText = document.getElementById('resultText');
+            
+            if (!code) {
+                alert('Please enter some code first!');
+                return;
+            }
+            
+            button.disabled = true;
+            button.textContent = 'Analyzing...';
+            resultDiv.style.display = 'block';
+            resultText.innerHTML = '<p class="loading">🔄 AI is analyzing your code...</p>';
+            
+            try {
+                const response = await fetch('/analyze', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({ code: code })
+                });
+                
+                if (!response.ok) {
+                    throw new Error('Backend error');
+                }
+                
+                const data = await response.json();
+                resultText.innerHTML = `<p>${data.result.replace(/\n/g, '<br>')}</p>`;
+                
+            } catch (error) {
+                resultText.innerHTML = `<p style="color: red;">❌ Error: ${error.message}</p>`;
+            }
+            
+            button.disabled = false;
+            button.textContent = 'Analyze Code';
+        }
+    </script>
+</body>
+</html>
